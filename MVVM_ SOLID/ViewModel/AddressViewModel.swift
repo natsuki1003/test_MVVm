@@ -20,6 +20,22 @@ class AddressViewModel: ObservableObject {
     }
 
     // Fetches the address associated with the current postal code by making an API call.
+    fileprivate func handlingdataadress(_ data: Data?) {
+        // Ensure `self` is weakly captured to prevent memory leaks.
+        // Process the response if data is available.
+        if let data = data,
+           // Decode the JSON response into the `JPPostalCodeResponse` structure.
+           let response = try? JSONDecoder().decode(JPPostalCodeResponse.self, from: data),
+           // Extract the first address from the response if available.
+           let addressData = response.addresses.first {
+            // Update the UI on the main thread.
+            DispatchQueue.main.async {
+                // Format the fetched address using the current formatter and assign it to `address`.
+                self.address = self.formatter.format(addressData)
+            }
+        }
+    }
+    
     func fetchAddress() {
         // Sanitize the postal code by removing hyphens.
         // The API expects a postal code without any formatting.
@@ -33,19 +49,7 @@ class AddressViewModel: ObservableObject {
 
         // Perform the API request using URLSession.
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-            // Ensure `self` is weakly captured to prevent memory leaks.
-            // Process the response if data is available.
-            if let data = data,
-               // Decode the JSON response into the `JPPostalCodeResponse` structure.
-               let response = try? JSONDecoder().decode(JPPostalCodeResponse.self, from: data),
-               // Extract the first address from the response if available.
-               let addressData = response.addresses.first {
-                // Update the UI on the main thread.
-                DispatchQueue.main.async {
-                    // Format the fetched address using the current formatter and assign it to `address`.
-                    self?.address = self?.formatter.format(addressData) ?? "Invalid address"
-                }
-            }
+            self?.handlingdataadress(data)
         }.resume() // Start the API request.
     }
 }
